@@ -15,7 +15,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => 
+          cookiesToSet.forEach(({ name, value, options }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({
@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // 비로그인 사용자 리다이렉트 (랜딩, 로그인, 회원가입 페이지만 허용)
-  const publicPaths = ['/', '/login', '/signup']
+  const publicPaths = ['/', '/login', '/signup', '/unauthorized']
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path)
 
   // API routes and auth callbacks should be allowed
@@ -46,32 +46,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 로그인한 사용자의 권한 체크 (protected routes)
-  const protectedPaths = ['/dashboard', '/matching', '/customers', '/employees']
-  const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
-
-  if (user && isProtectedPath) {
-    // employees 테이블에서 사용자 정보 확인
-    const { data: employee, error } = await supabase
-      .from('employees')
-      .select('is_active, is_admin, updated_at')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    // 직원 정보가 없거나 비활성 상태면 접근 거부
-    if (!employee || !employee.is_active) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/unauthorized'
-      return NextResponse.redirect(url)
-    }
-  }
-
   // 로그인한 사용자가 로그인/회원가입 페이지 접근 시 대시보드로 리다이렉트
   if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
+
+  // 권한 체크(is_active, is_admin)는 각 페이지에서 수행
+  // 미들웨어에서는 로그인 여부만 체크하여 타임아웃 방지
 
   return supabaseResponse
 }

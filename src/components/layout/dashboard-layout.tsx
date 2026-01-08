@@ -4,8 +4,9 @@ import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { ReceivablesSidebar } from "./receivables-sidebar"
 import { useSidebar } from "@/hooks/use-sidebar"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
-import { TrendingDown } from "lucide-react"
+import { TrendingDown, Loader2 } from "lucide-react"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -14,6 +15,16 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const { leftSidebarOpen, rightSidebarOpen, toggleLeftSidebar, toggleRightSidebar } = useSidebar()
+  const { isLoading, isAuthenticated } = useAuth()
+
+  // 권한 체크 중 로딩 표시
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    )
+  }
 
   // 매칭 페이지에서만 오른쪽 사이드바 표시
   const showRightSidebar = pathname === '/matching'
